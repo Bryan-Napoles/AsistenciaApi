@@ -1,6 +1,6 @@
-﻿using AsistenciaApi.Data;
+﻿using AsistenciaApi.Models;
+using AsistenciaApi.Data;
 using AsistenciaApi.DTOs;
-using AsistenciaApi.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace AsistenciaApi.Services
@@ -19,45 +19,31 @@ namespace AsistenciaApi.Services
         {
             try
             {
-                // Agregar un log para verificar los datos del usuario
-                Console.WriteLine($"Buscando usuario con Nombre: {registro.Nombre}, ApellidoPaterno: {registro.ApellidoPaterno}, ApellidoMaterno: {registro.ApellidoMaterno}");
-
-                // Buscar al usuario por Nombre, ApellidoPaterno y ApellidoMaterno
+                // Verificar si el usuario existe
                 var usuario = await _context.Usuarios
-                    .FirstOrDefaultAsync(u => u.Nombre == registro.Nombre &&
-                                              u.ApellidoPaterno == registro.ApellidoPaterno &&
-                                              u.ApellidoMaterno == registro.ApellidoMaterno);
+    .FirstOrDefaultAsync(u => u.Id == registro.UsuarioId);
 
-                // Si el usuario no existe, devolver false y un DTO nulo
-                if (usuario == null)
+
+
+                // Si el usuario existe, asignar los datos de la asistencia
+                // Ya no necesitamos asignar el UsuarioId, ya viene de la solicitud
+
+                // Verificar si la fecha es nula antes de intentar asignarla
+                if (registro.Fecha == null)
                 {
-                    Console.WriteLine($"Usuario con Nombre: {registro.Nombre}, ApellidoPaterno: {registro.ApellidoPaterno}, ApellidoMaterno: {registro.ApellidoMaterno} no encontrado.");
-                    return new Tuple<bool, RegistroAsistenciaDTO>(false, null); // Usuario no encontrado
+                    // Asignar la fecha actual si no se proporcionó
+                    registro.Fecha = DateTime.Now;
                 }
 
-                // Asignar la hora actual del sistema a la hora de entrada si no se proporciona
-                if (registro.HoraEntrada == TimeSpan.Zero)
-                {
-                    registro.HoraEntrada = DateTime.Now.TimeOfDay; // Hora actual del sistema
-                }
-
-                // Asignar la hora actual del sistema a la hora de salida si no se proporciona
-                if (registro.HoraSalida == TimeSpan.Zero)
-                {
-                    registro.HoraSalida = DateTime.Now.TimeOfDay; // Hora actual del sistema
-                }
-
-                // Registrar la asistencia
+                // Registrar la asistencia en la base de datos
                 _context.RegistrosAsistencia.Add(registro);
                 await _context.SaveChangesAsync();
 
-                // Mapeo manual a DTO
+                // Crear el DTO para devolver con los datos del registro de asistencia
                 var registroDTO = new RegistroAsistenciaDTO
                 {
-                    Nombre = registro.Nombre,
-                    ApellidoPaterno = registro.ApellidoPaterno,
-                    ApellidoMaterno = registro.ApellidoMaterno,
-                    Fecha = registro.Fecha,
+                    UsuarioId = registro.UsuarioId,  // Retornamos solo el UsuarioId
+                    Fecha = registro.Fecha.Value,    // Asegúrate de acceder al valor de DateTime?
                     HoraEntrada = registro.HoraEntrada,
                     HoraSalida = registro.HoraSalida,
                     HoraEntradaComida = registro.HoraEntradaComida,
@@ -66,18 +52,17 @@ namespace AsistenciaApi.Services
                     PermisoSalidaTemprana = registro.PermisoSalidaTemprana
                 };
 
-                // Retornar el Tuple con 'true' y el DTO
-                Console.WriteLine($"Asistencia registrada para el usuario con Nombre: {registro.Nombre}, ApellidoPaterno: {registro.ApellidoPaterno}, ApellidoMaterno: {registro.ApellidoMaterno}.");
+                // Devolver el resultado con 'true' y el DTO
                 return new Tuple<bool, RegistroAsistenciaDTO>(true, registroDTO);
             }
             catch (Exception ex)
             {
-                // Si hay un error, lo registramos
-                Console.WriteLine($"Error al registrar la asistencia: {ex.Message}");
+                // Loguear el error
+                Console.WriteLine($"Error: {ex.Message}");
+
+                // Retornar el resultado del error
                 return new Tuple<bool, RegistroAsistenciaDTO>(false, null);
             }
         }
-
     }
 }
-

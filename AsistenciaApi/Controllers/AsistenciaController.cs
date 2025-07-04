@@ -18,12 +18,13 @@ namespace AsistenciaApi.Controllers
         [HttpPost("registrar")]
         public async Task<IActionResult> RegistrarAsistencia([FromBody] RegistroAsistencia registro)
         {
-            // Validar si el modelo tiene los datos completos (sin campos vacíos)
-            if (!ModelState.IsValid)
+            // Verificar que los campos requeridos no sean nulos o vacíos
+            if (registro.UsuarioId == 0 || registro.Fecha == null)
             {
-                return BadRequest(ModelState);  // Si el modelo no es válido, devolvemos un BadRequest con los detalles
+                return BadRequest("El UsuarioId o la fecha son requeridos.");
             }
 
+            // Registrar la asistencia
             var result = await _asistenciaService.RegistrarAsistenciaAsync(registro);
 
             if (!result.Item1)
@@ -31,8 +32,18 @@ namespace AsistenciaApi.Controllers
                 return BadRequest("El usuario no existe o ocurrió un error al registrar la asistencia.");
             }
 
-            // Si el usuario existe y el registro es exitoso, devolvemos el DTO con el registro de asistencia creado
-            return Ok(result.Item2); // Retorna el RegistroAsistenciaDTO
+            // Solo retornamos el UsuarioId, Fecha y las horas de entrada y salida
+            return Ok(new
+            {
+                UsuarioId = result.Item2.UsuarioId,
+                Fecha = result.Item2.Fecha,
+                HoraEntrada = result.Item2.HoraEntrada,
+                HoraSalida = result.Item2.HoraSalida,
+                HoraEntradaComida = result.Item2.HoraEntradaComida,
+                HoraSalidaComida = result.Item2.HoraSalidaComida,
+                PermisoEntradaTarde = result.Item2.PermisoEntradaTarde,
+                PermisoSalidaTemprana = result.Item2.PermisoSalidaTemprana
+            });
         }
 
     }

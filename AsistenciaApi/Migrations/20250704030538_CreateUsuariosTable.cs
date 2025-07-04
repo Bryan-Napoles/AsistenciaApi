@@ -46,6 +46,7 @@ namespace AsistenciaApi.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_RegistrosAsistencia", x => x.Id);
+                    // Agregar la clave foránea
                     table.ForeignKey(
                         name: "FK_RegistrosAsistencia_Usuarios_UsuarioId",
                         column: x => x.UsuarioId,
