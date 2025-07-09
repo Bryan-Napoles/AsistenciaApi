@@ -1,7 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using AsistenciaApi.Services;
+using Microsoft.AspNetCore.Mvc;
 using AsistenciaApi.Models;
 using AsistenciaApi.DTOs;
-using AsistenciaApi.Services;
+
 
 namespace AsistenciaApi.Controllers
 {
@@ -16,34 +17,21 @@ namespace AsistenciaApi.Controllers
             _userService = userService;
         }
 
-        // Endpoint para registrar un nuevo usuario
-        [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] Usuario usuario)
-        {
-            if (usuario == null)
-                return BadRequest("Los datos del usuario son inválidos.");
-
-            var result = await _userService.RegisterUserAsync(usuario);
-
-            if (result == null)
-                return BadRequest("El usuario ya está registrado.");
-
-            return Ok(result);  // Retornamos el UsuarioDTO
-        }
-
-        // Endpoint para login de usuario
         [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] Usuario usuario)
+        public async Task<IActionResult> Login([FromBody] LoginRequestDTO loginDto)
         {
+            var usuario = await _userService.ValidarCredencialesAsync(loginDto.Nombre, loginDto.Contrasena);
+
             if (usuario == null)
-                return BadRequest("Los datos del usuario son inválidos.");
+                return Unauthorized("Nombre o contraseña incorrectos.");
 
-            var result = await _userService.LoginUserAsync(usuario.Nombre, usuario.Contrasena);
-
-            if (result == null)
-                return Unauthorized("Usuario o contraseña incorrectos.");
-
-            return Ok(result);  // Retornamos el UsuarioDTO
+            // Personalizamos el nombre del campo a usuarioId
+            return Ok(new
+            {
+                mensaje = "Inicio de sesión exitoso",
+                usuarioId = usuario.Id,
+                nombre = usuario.Nombre
+            });
         }
 
     }

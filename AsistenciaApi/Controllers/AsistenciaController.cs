@@ -1,6 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using AsistenciaApi.DTOs;
 using AsistenciaApi.Models;
 using AsistenciaApi.Services;
+using Microsoft.AspNetCore.Mvc;
 
 namespace AsistenciaApi.Controllers
 {
@@ -16,35 +17,73 @@ namespace AsistenciaApi.Controllers
         }
 
         [HttpPost("registrar")]
-        public async Task<IActionResult> RegistrarAsistencia([FromBody] RegistroAsistencia registro)
+        public async Task<IActionResult> RegistrarAsistencia([FromBody] RegistroAsistenciaDTO dto)
         {
-            // Verificar que los campos requeridos no sean nulos o vacíos
-            if (registro.UsuarioId == 0 || registro.Fecha == null)
-            {
-                return BadRequest("El UsuarioId o la fecha son requeridos.");
-            }
+            if (dto.UsuarioId <= 0)
+                return BadRequest("Debe proporcionar un ID de usuario válido.");
 
-            // Registrar la asistencia
+            var registro = new RegistroAsistencia
+            {
+                UsuarioId = dto.UsuarioId,
+                Fecha = dto.Fecha,
+                HoraEntrada = dto.HoraEntrada,
+                HoraSalida = dto.HoraSalida,
+                HoraEntradaComida = dto.HoraEntradaComida,
+                HoraSalidaComida = dto.HoraSalidaComida,
+                PermisoEntradaTarde = dto.PermisoEntradaTarde,
+                PermisoSalidaTemprana = dto.PermisoSalidaTemprana
+            };
+
             var result = await _asistenciaService.RegistrarAsistenciaAsync(registro);
 
             if (!result.Item1)
-            {
-                return BadRequest("El usuario no existe o ocurrió un error al registrar la asistencia.");
-            }
+                return BadRequest("No se pudo registrar la asistencia.");
 
-            // Solo retornamos el UsuarioId, Fecha y las horas de entrada y salida
-            return Ok(new
-            {
-                UsuarioId = result.Item2.UsuarioId,
-                Fecha = result.Item2.Fecha,
-                HoraEntrada = result.Item2.HoraEntrada,
-                HoraSalida = result.Item2.HoraSalida,
-                HoraEntradaComida = result.Item2.HoraEntradaComida,
-                HoraSalidaComida = result.Item2.HoraSalidaComida,
-                PermisoEntradaTarde = result.Item2.PermisoEntradaTarde,
-                PermisoSalidaTemprana = result.Item2.PermisoSalidaTemprana
-            });
+            return Ok(result.Item2);
         }
+
+
+        [HttpGet("usuario/{usuarioId}")]
+        public async Task<IActionResult> ObtenerRegistrosPorUsuario(int usuarioId)
+        {
+            var registros = await _asistenciaService.ObtenerRegistrosPorUsuarioId(usuarioId);
+            return Ok(registros);
+        }
+
+        // ✅ Nuevo endpoint: resumen por rango de fechas
+        [HttpGet("resumen")]
+        public async Task<IActionResult> ObtenerResumenAsistencia(int usuarioId, DateTime desde, DateTime hasta)
+        {
+            try
+            {
+                // Log para ver qué valores estamos recibiendo en la solicitud
+                Console.WriteLine($"Obteniendo resumen de asistencia para el usuarioId {usuarioId} desde {desde} hasta {hasta}");
+
+                // Llamada al servicio para obtener los registros
+                var resumen = await _asistenciaService.ObtenerResumenPorUsuarioAsync(usuarioId, desde, hasta);
+
+                if (resumen == null)
+                {
+                    Console.WriteLine("Resumen no encontrado.");
+                    return NotFound("No se encontró el resumen.");
+                }
+
+                Console.WriteLine($"Resumen encontrado: Total Asistencias: {resumen.TotalAsistencias}");
+
+                return Ok(resumen);
+            }
+            catch (Exception ex)
+            {
+                // Imprimir el error completo en la consola
+                Console.WriteLine($"Error al obtener el resumen: {ex.Message}");
+                Console.WriteLine(ex.StackTrace);
+
+                // Retornar error interno al cliente
+                return StatusCode(500, "Error interno en el servidor");
+            }
+        }
+
+
 
     }
 }

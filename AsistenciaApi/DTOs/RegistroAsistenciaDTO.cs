@@ -10,6 +10,6 @@
         public TimeSpan? HoraSalidaComida { get; set; }
         public bool PermisoEntradaTarde { get; set; }
         public bool PermisoSalidaTemprana { get; set; }
-    }
 
+    }
 }

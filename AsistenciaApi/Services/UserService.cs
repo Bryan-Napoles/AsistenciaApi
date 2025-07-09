@@ -16,25 +16,20 @@ namespace AsistenciaApi.Services
             _context = context;
         }
 
-        // Método para registrar un nuevo usuario
         public async Task<UsuarioDTO> RegisterUserAsync(Usuario usuario)
         {
-            // Verificar si el usuario ya existe
             var existingUser = await _context.Usuarios
                 .FirstOrDefaultAsync(u => u.Nombre == usuario.Nombre &&
                                           u.ApellidoPaterno == usuario.ApellidoPaterno &&
                                           u.ApellidoMaterno == usuario.ApellidoMaterno);
             if (existingUser != null)
-                return null;  // Usuario ya existe
+                return null;
 
-            // Encriptar la contraseña
             usuario.Contrasena = EncryptPassword(usuario.Contrasena);
 
-            // Guardar el nuevo usuario
             _context.Usuarios.Add(usuario);
             await _context.SaveChangesAsync();
 
-            // Retornar un UsuarioDTO
             return new UsuarioDTO
             {
                 Id = usuario.Id,
@@ -44,18 +39,14 @@ namespace AsistenciaApi.Services
             };
         }
 
-        // Método para autenticar un usuario
         public async Task<UsuarioDTO> LoginUserAsync(string nombre, string contrasena)
         {
-            // Buscar al usuario en la base de datos por su nombre
             var user = await _context.Usuarios
                 .FirstOrDefaultAsync(u => u.Nombre == nombre);
 
-            // Si no se encuentra el usuario o la contraseña no es correcta
             if (user == null || !VerifyPassword(contrasena, user.Contrasena))
-                return null;  // Usuario no encontrado o contraseña incorrecta
+                return null;
 
-            // Si la contraseña es correcta, retornamos un DTO con los datos del usuario
             return new UsuarioDTO
             {
                 Id = user.Id,
@@ -65,17 +56,24 @@ namespace AsistenciaApi.Services
             };
         }
 
-        // Método para verificar las contraseñas encriptadas
+        // ✅ Método requerido por AuthController
+        public async Task<Usuario?> ValidarCredencialesAsync(string nombre, string contrasena)
+        {
+            var user = await _context.Usuarios
+                .FirstOrDefaultAsync(u => u.Nombre == nombre);
+
+            if (user == null || !VerifyPassword(contrasena, user.Contrasena))
+                return null;
+
+            return user;
+        }
+
         private bool VerifyPassword(string enteredPassword, string storedPassword)
         {
-            // Encriptamos la contraseña proporcionada por el usuario
             var enteredHash = EncryptPassword(enteredPassword);
-
-            // Comparamos el hash de la contraseña proporcionada con el hash almacenado
             return enteredHash == storedPassword;
         }
 
-        // Método para encriptar la contraseña
         private string EncryptPassword(string password)
         {
             using (var sha256 = SHA256.Create())
