@@ -16,6 +16,22 @@ namespace AsistenciaApi.Controllers
         {
             _userService = userService;
         }
+        [HttpPost("register")]
+        public async Task<IActionResult> Register([FromBody] Usuario usuario)
+        {
+            var nuevoUsuario = await _userService.RegisterUserAsync(usuario);
+
+            if (nuevoUsuario == null)
+                return BadRequest("El usuario ya existe.");
+
+            return Ok(new
+            {
+                mensaje = "Registro exitoso",
+                usuarioId = nuevoUsuario.Id,
+                nombre = nuevoUsuario.Nombre
+            });
+        }
+
 
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequestDTO loginDto)
